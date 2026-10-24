@@ -1,0 +1,48 @@
+# profilers configuration
+# Paths may start with "~" (expanded to $HOME). All archive entries are stored
+# relative to $HOME so that `tar -xzf <archive> -C ~` restores in place.
+
+[output]
+dir  = "~/Backups"
+name = "profilers-{hostname}-{timestamp}.tgz"   # {timestamp} = YYYYMMDD-HHMMSS
+follow_symlinks = true                          # store the target's content instead of the link
+
+[home]
+dotfiles = true                                 # every top-level ~/.* regular file
+dotfile_excludes = [".zcompdump*", ".DS_Store", ".CFUserTextEncoding", "*.zwc", "*.zwc.old"]
+dot_dirs = [".ssh", ".aws", ".gnupg", ".kube", ".docker", ".config"]
+
+# Sub-paths (relative to the dot-dir) to skip. Global patterns.exclude_dirs
+# also apply inside dot-dirs.
+[home.dot_dir_excludes]
+".config" = ["gcloud/logs", "Code", "configstore"]
+".docker" = ["cli-plugins", "buildx", "desktop", "run"]   # binaries, build cache, sockets
+
+# Directories to scan for secret/config files matching patterns.include.
+# depth = 0 scans only the directory itself; depth = 1 adds its children, etc.
+[[scan]]
+path  = "~/projects"
+depth = 3
+
+[[scan]]
+path  = "~"
+depth = 1
+
+[patterns]
+include = [
+  ".env", ".env.*", "*.env",
+  "*.pem", "*.key", "*.p12", "*.pfx", "*.crt",
+  "id_rsa*", "id_ed25519*", "*.pub",
+  "credentials*.json", "service-account*.json", "*secret*.json",
+  "*.tfvars", "terraform.tfstate*",
+  "config.toml", "config.properties", "settings.local.*", "appsettings.*.json",
+]
+exclude_dirs = [
+  "node_modules", ".git", ".venv", "venv", "__pycache__",
+  ".cache", "target", "dist", "build", ".next", ".terraform",
+  ".Trash", "OrbStack",                         # TCC-protected / virtual mounts
+]
+
+[macos]
+# Names under ~/Library/Application Support to include in full, e.g. ["Code", "iTerm2"].
+app_support = []

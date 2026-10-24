@@ -1,0 +1,63 @@
+version: "3"
+
+vars:
+  BIN: profilers
+  DIST: dist
+  # CGO_ENABLED=0 yields a fully static binary with no libc dependency at all
+  # (stricter than musl). -s -w strips symbols/DWARF; -trimpath removes
+  # local paths for reproducible builds.
+  GOFLAGS: -trimpath
+  LDFLAGS: -s -w -buildid=
+
+env:
+  CGO_ENABLED: "0"
+
+tasks:
+  default:
+    cmds:
+      - task: build
+
+  build:
+    desc: Build for the current platform into dist/
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.DIST}}/{{.BIN}}"
+    cmds:
+      - mkdir -p {{.DIST}}
+      - go build {{.GOFLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.DIST}}/{{.BIN}} .
+
+  build:all:
+    desc: Build static optimized binaries for darwin/arm64, linux/amd64, linux/arm64
+    deps:
+      - task: build:target
+        vars: { GOOS: darwin, GOARCH: arm64 }
+      - task: build:target
+        vars: { GOOS: linux, GOARCH: amd64 }
+      - task: build:target
+        vars: { GOOS: linux, GOARCH: arm64 }
+
+  build:target:
+    internal: true
+    label: build:{{.GOOS}}-{{.GOARCH}}
+    requires:
+      vars: [GOOS, GOARCH]
+    sources:
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - "{{.DIST}}/{{.BIN}}-{{.GOOS}}-{{.GOARCH}}"
+    env:
+      GOOS: "{{.GOOS}}"
+      GOARCH: "{{.GOARCH}}"
+    cmds:
+      - mkdir -p {{.DIST}}
+      - go build {{.GOFLAGS}} -ldflags="{{.LDFLAGS}}" -o {{.DIST}}/{{.BIN}}-{{.GOOS}}-{{.GOARCH}} .
+
+  clean:
+    desc: Remove dist/
+    cmds:
+      - rm -rf {{.DIST}}
